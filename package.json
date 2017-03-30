@@ -1,0 +1,20 @@
+{
+  "name": "hpc-twitter-geoprocessing",
+  "version": "1.0.0",
+  "description": "COMP90024 Cluster and Cloud Computing assignment 1",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martindavid/COMP90024-HPC-Twitter-GeoProcessing.git"
+  },
+  "author": "martin.david.siagian@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/martindavid/COMP90024-HPC-Twitter-GeoProcessing/issues"
+  },
+  "homepage": "https://github.com/martindavid/COMP90024-HPC-Twitter-GeoProcessing#readme"
+}

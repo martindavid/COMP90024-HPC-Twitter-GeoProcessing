@@ -1,0 +1,55 @@
+import sys
+sys.path.append("lib/ijson-2.3")
+import json
+import ijson
+from pprint import pprint
+
+
+def load_twitter_json(file_name):
+    with open(file_name) as f:
+        parser = ijson.parse(f)
+        i = 0
+        for prefix, event, value in parser:
+            if prefix == 'item.json.coordinates.coordinates.item':
+                print('%d - %d' % (i, value))
+            i = i + 1
+
+
+def construct_melb_grid(file_name):
+    melb_grid = []
+
+    with open(file_name) as f:
+        data = json.load(f)
+        for val in data["features"]:
+            grid_data = {}
+            properties = val["properties"]
+            grid_data["id"] = properties["id"]
+            grid_data["xmax"] = properties["xmax"]
+            grid_data["xmin"] = properties["xmin"]
+            grid_data["ymin"] = properties["ymin"]
+            grid_data["ymax"] = properties["ymax"]
+            grid_data["count"] = 0
+            melb_grid.append(grid_data)
+    return melb_grid
+
+
+# lat = y
+# long = x
+def match_tweets_coordinates(melb_grid, lat, lng):
+    for data in melb_grid:
+        if (lat >= data["ymin"] and lat <= data["ymax"]) and (lng >= data["xmin"] and lng <= data["xmax"]):
+            data["count"] = data["count"] + 1
+
+#grid = construct_melb_grid('data/melbGrid.json')
+melb_grid = construct_melb_grid('data/melbGrid.json')
+with open('data/tinyTwitter.json') as f:
+    parsed_obj = ijson.items(f, 'item.json.coordinates.coordinates')
+    for coordinates in parsed_obj:
+        match_tweets_coordinates(melb_grid, coordinates[1], coordinates[0])
+
+#pprint(melb_grid)
+grid_ranks = sorted(melb_grid, key=lambda k: k["count"], reverse=True)
+for data in grid_ranks:
+    pprint('%s: %d tweets' % (data["id"], data["count"]))
+
+#pprint(sorted_dict) 
