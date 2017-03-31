@@ -6,17 +6,12 @@ from pprint import pprint
 import time
 import itertools
 import operator
+from mpi4py import MPI
+import numpy as np
 
-
-def load_twitter_json(file_name):
-    with open(file_name) as f:
-        parser = ijson.parse(f)
-        i = 0
-        for prefix, event, value in parser:
-            if prefix == 'item.json.coordinates.coordinates.item':
-                print('%d - %d' % (i, value))
-            i = i + 1
-
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
 
 def construct_melb_grid(file_name):
     """Parse melbGrid.json file and put the value inside dictionary"""
@@ -39,8 +34,6 @@ def construct_melb_grid(file_name):
     return melb_grid
 
 
-# lat = y
-# long = x
 def match_tweets_coordinates(melb_grid, lat, lng):
     """Match individual tweet coordinates with the coordinates in melbGrid.json"""
     """lat -> y, long -> x"""
@@ -50,61 +43,85 @@ def match_tweets_coordinates(melb_grid, lat, lng):
             grid_data["count"] = grid_data["count"] + 1
 
 
+MELB_GRID = construct_melb_grid('data/melbGrid.json')
 
-print('Start Running The Program')
-print('=========================')
-start = time.time()
-MELB_GRID_DATA = construct_melb_grid('data/melbGrid.json')
-ROW_RANK = {"A":0, "B":0, "C":0, "D":0}
-COLUMN_RANK = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
-ROW_GROUP_TEXT = "row_group"
-COLUMN_GROUP_TEXT = "column_group"
-COUNT_TEXT = "count"
+if rank == 0:
+    print('Start Running The Program')
+    print('=========================')
+    start = time.time()
+    ROW_RANK = {"A":0, "B":0, "C":0, "D":0}
+    COLUMN_RANK = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    ROW_GROUP_TEXT = "row_group"
+    COLUMN_GROUP_TEXT = "column_group"
+    COUNT_TEXT = "count"
 
-with open('data/smallTwitter.json') as f:
-    PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
-    for coordinates in PARSED_OBJ:
-        match_tweets_coordinates(MELB_GRID_DATA, coordinates[1], coordinates[0])
+    with open('data/smallTwitter.json') as f:
+        try:
+            PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
+            coords_data = []
+            for coordinates in PARSED_OBJ:
+                coords = {}
+                coords["lat"] = coordinates[0]
+                coords["lng"] = coordinates[1]
+                coords_data.append(coords)
+        except:
+            pass
+    chunks = np.array_split(coords_data, size)
+else:
+    chunks = None
 
-# Group by Row
-row_group = []
-for key, items in itertools.groupby(MELB_GRID_DATA, operator.itemgetter(ROW_GROUP_TEXT)):
-    row_group.append(list(items))
+chunk = comm.scatter(chunks, root=0)
 
-for data in row_group:
-    if len(data) > 0:
-        for val in data:
-            ROW_RANK[val[ROW_GROUP_TEXT]] = ROW_RANK[val[ROW_GROUP_TEXT]] + int(val[COUNT_TEXT])
+for data in chunk:    
+    match_tweets_coordinates(MELB_GRID, data["lng"], data["lat"])
 
-# Group by column
-column_group = []
-for key, items in itertools.groupby(MELB_GRID_DATA, operator.itemgetter(COLUMN_GROUP_TEXT)):
-    column_group.append(list(items))
-
-for data in row_group:
-    if len(data) > 0:
-        for val in data:
-            COLUMN_RANK[val[COLUMN_GROUP_TEXT]] = COLUMN_RANK[val[COLUMN_GROUP_TEXT]] + int(val[COUNT_TEXT])
+result = comm.allgather(MELB_GRID)
 
 
-## Print all of the stuff here
-print(" ")
-print("Rank based on boxes")
-GRID_RANKS = sorted(MELB_GRID_DATA, key=lambda k: k["count"], reverse=True)
-for data in GRID_RANKS:
-    pprint('%s: %d tweets' % (data["id"], data["count"]))
+if rank == 0:
+    RESULT_GRID = {
+        "A1": 0, "A2": 0, "A3": 0, "A4": 0,
+        "B1": 0, "B2": 0, "B3": 0, "B4": 0,
+        "C1": 0, "C2": 0, "C3": 0, "C4": 0, "C5": 0,
+        "D3": 0, "D4": 0, "D5": 0,
+    }
+    for grid_data in result:
+        for single_grid_data in grid_data:
+            RESULT_GRID[single_grid_data["id"]] = RESULT_GRID[single_grid_data["id"]] \
+                                                    + single_grid_data["count"]
 
-print(" ")
-print("Order by rows")
-for val in ROW_RANK:
-    pprint('%s-Row: %d' % (val, ROW_RANK[val]))
+    # Group by Row
+    ROW_GROUP = {"A": 0, "B": 0, "C": 0, "D": 0}
+    for i in RESULT_GRID:
+        ROW_GROUP[i[0:1]] = ROW_GROUP[i[0:1]] + RESULT_GRID[i]
 
-print(" ")
-print("Order by columns")
-for val in COLUMN_RANK:
-    pprint('Column %s: %d' % (val, COLUMN_RANK[val]))
 
-done = time.time()
-elapsed = round(done - start)
-print(" ")
-print("Program run for %d seconds" % (elapsed % 60))
+
+    # Group by column
+    COLUMN_GROUP = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
+    for i in RESULT_GRID:
+        COLUMN_GROUP[i[1:2]] = COLUMN_GROUP[i[1:2]] + RESULT_GRID[i]
+
+    # Print all of the stuff here
+    print(" ")
+    print("Rank based on boxes")
+    GRID_RANKS = sorted(RESULT_GRID, key=RESULT_GRID.get, reverse=True)
+    for i in GRID_RANKS:
+        pprint('%s: %d tweets' % (i, RESULT_GRID[i]))
+
+    print(" ")
+    print("Order by rows")
+    ROW_RANK = sorted(ROW_GROUP, key=ROW_GROUP.get, reverse=True)
+    for val in ROW_RANK:
+        pprint('%s-Row: %d' % (val, ROW_GROUP[val]))
+
+    print(" ")
+    print("Order by columns")
+    COLUMN_RANK = sorted(COLUMN_GROUP, key=COLUMN_GROUP.get, reverse=True)
+    for val in COLUMN_RANK:
+        pprint('Column %s: %d' % (val, COLUMN_GROUP[val]))
+
+    done = time.time()
+    elapsed = round(done - start)
+    print(" ")
+    print("Program run for %d seconds" % (elapsed % 60))
