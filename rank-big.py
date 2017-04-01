@@ -9,9 +9,9 @@ import operator
 from mpi4py import MPI
 import numpy as np
 
-
 # get start time
 startTime = time.time()
+
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
@@ -47,6 +47,7 @@ def match_tweets_coordinates(melb_grid, lat, lng):
 
 
 MELB_GRID = construct_melb_grid('data/melbGrid.json')
+start = time.time()
 if rank == 0:
     print('Start Running The Program')
     print('=========================')
@@ -56,7 +57,7 @@ if rank == 0:
     COLUMN_GROUP_TEXT = "column_group"
     COUNT_TEXT = "count"
 
-    with open('data/smallTwitter.json') as f:
+    with open('data/bigTwitter.json') as f:
         try:
             PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
             coords_data = []
@@ -71,13 +72,12 @@ if rank == 0:
 else:
     chunks = None
 
-
 chunk = comm.scatter(chunks, root=0)
 
 for data in chunk:    
     match_tweets_coordinates(MELB_GRID, data["lng"], data["lat"])
 
-result = comm.gather(MELB_GRID)
+result = comm.allgather(MELB_GRID)
 
 
 if rank == 0:

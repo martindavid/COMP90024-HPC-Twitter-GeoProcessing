@@ -10,40 +10,37 @@ import numpy as np
 import ijson
 
 
-if not MPI.Is_initialized():
-    MPI.Init()
-
 comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
 
-with open('data/sample-twitter.json') as f:
-    PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
-    myData = []
-    for coordinates in PARSED_OBJ:
-        coords = {}
-        coords["lat"] = coordinates[0]
-        coords["lng"] = coordinates[1]
-        myData.append(coords)
+if rank == 0:
+    with open('data/sample-twitter.json') as f:
+        PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
+        myData = []
+        count = 0
+        flag = 2
+        for coordinates in PARSED_OBJ:
+            coords = {}
+            coords["lat"] = coordinates[0]
+            coords["lng"] = coordinates[1]
+            myData.append(coords)
+            if count % flag == 0:
+                comm.send(myData, dest=(rank+1)%size)
 
 
-# tell the bastards that this is the data
-for i in range(size):
-	# print(rank," : rank and I is",i)
-    if rank == i:
-        dataInput = myData
-        pprint(dataInput)
-        chunks = [[] for _ in range(size)]
-        for j, chunk in enumerate(dataInput):
-            chunks[j % size].append(chunk)
+data = comm.recv(source=0)
+print('Rank %d' % rank)
+pprint(data)
 
-dataInput = comm.scatter(chunks, 0)
 
-for i in range(size):
-    if rank == i:
-         print('Rank %d' % rank)
-         pprint(dataInput)
-    comm.Barrier()
+if rank == 0:
+    print("Finish process")
 
-comm.gather(chunks, 0)
+    # if count >= 1:
+    #     pprint(myData)
+
+    #     count = 0
+    #     myData = []
+    # count = count + 1

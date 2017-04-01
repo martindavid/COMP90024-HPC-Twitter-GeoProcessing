@@ -1,0 +1,30 @@
+Rank based on boxes
+'C2: 139352 tweets'
+'B2: 78654 tweets'
+'C3: 52776 tweets'
+'B3: 26225 tweets'
+'C4: 19451 tweets'
+'B1: 16379 tweets'
+'D4: 14555 tweets'
+'D3: 13305 tweets'
+'C1: 8374 tweets'
+'B4: 5445 tweets'
+'A3: 5038 tweets'
+'A2: 4159 tweets'
+'C5: 4025 tweets'
+'D5: 3153 tweets'
+'A1: 2546 tweets'
+'A4: 308 tweets'
+ 
+Order by rows
+'C-Row: 223978'
+'B-Row: 126703'
+'D-Row: 31013'
+'A-Row: 12051'
+ 
+Order by columns
+'Column 2: 222165'
+'Column 3: 97344'
+'Column 4: 39759'
+'Column 1: 27299'
+'Column 5: 7178'
