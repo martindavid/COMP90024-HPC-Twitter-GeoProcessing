@@ -57,16 +57,16 @@ if rank == 0:
     COUNT_TEXT = "count"
 
     with open('data/smallTwitter.json') as f:
-        try:
-            PARSED_OBJ = ijson.items(f, 'item.json.coordinates.coordinates')
-            coords_data = []
-            for coordinates in PARSED_OBJ:
+        coords_data = []
+        for line in f:
+            try:
                 coords = {}
-                coords["lat"] = coordinates[0]
-                coords["lng"] = coordinates[1]
+                data = json.loads(line[0:len(line) - 2])
+                coords["lat"] = data["json"]["coordinates"]["coordinates"][0]
+                coords["lng"] = data["json"]["coordinates"]["coordinates"][1]
                 coords_data.append(coords)
-        except:
-            pass
+            except Exception as inst:
+                continue
     chunks = np.array_split(coords_data, size)
 else:
     chunks = None

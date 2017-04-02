@@ -10,6 +10,7 @@ import time
 WORKTAG = 1
 DIETAG = 0
 
+
 def match_tweets_coordinates(melb_grid, result_grid, lat, lng):
     """Match individual tweet coordinates with the coordinates in melbGrid.json"""
     # lat -> y, long -> x
@@ -17,6 +18,7 @@ def match_tweets_coordinates(melb_grid, result_grid, lat, lng):
         if (lat >= grid_data["ymin"] and lat <= grid_data["ymax"]) \
                 and (lng >= grid_data["xmin"] and lng <= grid_data["xmax"]):
             result_grid[grid_data["id"]] = result_grid[grid_data["id"]] + 1
+
 
 def construct_melb_grid(file_name):
     """Parse melbGrid.json file and put the value inside dictionary"""
@@ -37,8 +39,10 @@ def construct_melb_grid(file_name):
 
 MELB_GRID = construct_melb_grid("data/melbGrid.json")
 
+
 class TweetData(object):
     "Shareable Data"
+
     def __init__(self, data):
         self.tweets = data
 
@@ -66,39 +70,40 @@ def master(comm):
         "D3": 0, "D4": 0, "D5": 0,
     }
 
-
     with open('data/smallTwitter.json') as json_file:
-        parsed_obj = ijson.items(json_file, 'item.json.coordinates.coordinates')
         i = 1
         count = 0
-        try:
-            my_data = []
-            grid = []
-            for coordinates in parsed_obj:
+        my_data = []
+        grid = []
+        for line in json_file:
+            try:
+                data = json.loads(line[0:len(line) - 2])
                 coords = {}
-                coords["lat"] = coordinates[0]
-                coords["lng"] = coordinates[1]
+                coords["lat"] = data["json"]["coordinates"]["coordinates"][0]
+                coords["lng"] = data["json"]["coordinates"]["coordinates"][1]
                 my_data.append(coords)
-                count = count + 1
-                if count % flag == 0:
-                    tweet = TweetData(my_data)
-                    comm.send(tweet, dest=i, tag=WORKTAG)
-                    my_data = []
-                    count = 0
-                    if i < size - 1:
-                        i = i + 1
-                    else:
-                        i = 1
-                    result = comm.recv(source=MPI.ANY_SOURCE,
-                                       tag=MPI.ANY_TAG, status=status)
-                    grid.append(result)
+            except:
+                continue
 
-            if my_data:
+            count = count + 1
+            if count % flag == 0:
+                tweet = TweetData(my_data)
                 comm.send(tweet, dest=i, tag=WORKTAG)
-                result = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+                my_data = []
+                count = 0
+                if i < size - 1:
+                    i = i + 1
+                else:
+                    i = 1
+                result = comm.recv(source=MPI.ANY_SOURCE,
+                                    tag=MPI.ANY_TAG, status=status)
                 grid.append(result)
-        except:
-            pass
+
+        if my_data:
+            comm.send(tweet, dest=i, tag=WORKTAG)
+            result = comm.recv(source=MPI.ANY_SOURCE,
+                                tag=MPI.ANY_TAG, status=status)
+            grid.append(result)
 
         for i in range(1, size):
             comm.send(0, dest=i, tag=DIETAG)
@@ -136,11 +141,11 @@ def master(comm):
         for val in column_rank:
             pprint('Column %s: %d' % (val, column_group[val]))
 
-        #print the total time it takes
+        # print the total time it takes
         total_minutes = time.time() - start_time
         minutes, seconds = divmod(total_minutes, 60)
-        print("\n\n Total time used for execution is %02d minutes and %02d seconds"\
-                %(minutes, seconds))
+        print("\n\n Total time used for execution is %02d minutes and %02d seconds"
+              % (minutes, seconds))
 
 
 def slave(comm):
