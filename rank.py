@@ -1,3 +1,5 @@
+from __future__ import print_function
+import sys
 import json
 from pprint import pprint
 import time
@@ -5,7 +7,6 @@ import itertools
 import operator
 from mpi4py import MPI
 import numpy as np
-from __future__ import print_function
 
 
 # get start time
@@ -53,6 +54,7 @@ if rank == 0:
 
     with open('data/smallTwitter.json') as f:
         coords_data = []
+        #parse line by line in the file and ignore any error show up
         for line in f:
             try:
                 coords = {}
@@ -72,6 +74,7 @@ chunk = comm.scatter(chunks, root=0)
 for data in chunk:    
     match_tweets_coordinates(MELB_GRID, data["lng"], data["lat"])
 
+# Gather all of results from child process
 result = comm.gather(MELB_GRID)
 
 if rank == 0:
@@ -87,33 +90,32 @@ if rank == 0:
                                                     + single_grid_data["count"]
 
     # Group by Row
+    # Summarize the count by taking first character from the box name
     ROW_GROUP = {"A": 0, "B": 0, "C": 0, "D": 0}
     for i in RESULT_GRID:
         ROW_GROUP[i[0:1]] = ROW_GROUP[i[0:1]] + RESULT_GRID[i]
 
     # Group by column
+    # Summarize the count by taking second character from the box name
     COLUMN_GROUP = {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
     for i in RESULT_GRID:
         COLUMN_GROUP[i[1:2]] = COLUMN_GROUP[i[1:2]] + RESULT_GRID[i]
 
     # Print all of the stuff here
     # Print rank by boxes
-    print(" ")
-    print("Rank based on boxes")
+    print("\nRank based on boxes")
     GRID_RANKS = sorted(RESULT_GRID, key=RESULT_GRID.get, reverse=True)
     for i in GRID_RANKS:
         pprint('%s: %d tweets' % (i, RESULT_GRID[i]))
 
     # Print rank by rows
-    print(" ")
-    print("Order by rows")
+    print("\nOrder by rows")
     ROW_RANK = sorted(ROW_GROUP, key=ROW_GROUP.get, reverse=True)
     for val in ROW_RANK:
         pprint('%s-Row: %d' % (val, ROW_GROUP[val]))
 
     # Print rank by column
-    print(" ")
-    print("Order by columns")
+    print("\nOrder by columns")
     COLUMN_RANK = sorted(COLUMN_GROUP, key=COLUMN_GROUP.get, reverse=True)
     for val in COLUMN_RANK:
         pprint('Column %s: %d' % (val, COLUMN_GROUP[val]))
@@ -121,4 +123,4 @@ if rank == 0:
     #print the total time it takes
     total_minutes = time.time() - start_time
     minutes, seconds = divmod(total_minutes, 60)
-    print("\n\n Total time used for execution is %02d minutes and %02d seconds" %(minutes, seconds))
+    print("\nTotal time used for execution is %02d minutes and %02d seconds" %(minutes, seconds))
