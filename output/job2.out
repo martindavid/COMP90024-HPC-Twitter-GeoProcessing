@@ -1,0 +1,35 @@
+Run job with 1 node and 8 core
+ 
+
+Rank based on boxes
+'C2: 139352 tweets'
+'B2: 78698 tweets'
+'C3: 52776 tweets'
+'B3: 26232 tweets'
+'C4: 19455 tweets'
+'B1: 16384 tweets'
+'D4: 14555 tweets'
+'D3: 13308 tweets'
+'C1: 8374 tweets'
+'B4: 5455 tweets'
+'A3: 5041 tweets'
+'A2: 4159 tweets'
+'C5: 4029 tweets'
+'D5: 3163 tweets'
+'A1: 2546 tweets'
+'A4: 309 tweets'
+
+Order by rows
+'C-Row: 223986'
+'B-Row: 126769'
+'D-Row: 31026'
+'A-Row: 12055'
+
+Order by columns
+'Column 2: 222209'
+'Column 3: 97357'
+'Column 4: 39774'
+'Column 1: 27304'
+'Column 5: 7192'
+
+Total time used for execution is 02 minutes and 59 seconds
