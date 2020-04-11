@@ -4,6 +4,6 @@ mpi4py==2.0.0
 numpy==1.12.1
 packaging==16.8
 pprint==0.1
-psutil==5.2.1
+psutil==5.6.6
 pyparsing==2.2.0
 six==1.10.0
