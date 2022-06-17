@@ -1,7 +1,7 @@
 appdirs==1.4.3
 memory-profiler==0.45
 mpi4py==2.0.0
-numpy==1.12.1
+numpy==1.21.0
 packaging==16.8
 pprint==0.1
 psutil==5.6.6
